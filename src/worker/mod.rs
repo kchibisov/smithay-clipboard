@@ -143,8 +143,11 @@ fn worker_impl(display: Display, request_rx: Receiver<Command>, reply_tx: Sender
     }
 
     // Listen for seats.
-    let _listener = env.listen_for_seats(move |seat, seat_data, _| {
+    let _listener = env.listen_for_seats(move |seat, seat_data, mut dispatch_data| {
         let detached_seat = seat.clone().detach();
+        if let Some(dispatch_data) =  dispatch_data.get::<ClipboardDispatchData>() {
+            dispatch_data.set_sync(true);
+        }
         let pos = seats.iter().position(|st| st.seat == detached_seat);
         let index = pos.unwrap_or_else(|| {
             seats.push(SeatData::new(detached_seat, None, None));
@@ -270,6 +273,13 @@ fn worker_impl(display: Display, request_rx: Receiver<Command>, reply_tx: Sender
         let pending_events = queue
             .dispatch_pending(&mut dispatch_data, |_, _, _| {})
             .unwrap();
+
+        if dispatch_data.should_sync() {
+            // Sync to server.
+            let _ = queue.display().flush();
+            let _ = queue.sync_roundtrip(&mut (), |_, _, _| unreachable!());
+            dispatch_data.set_sync(false);
+        }
 
         // If some application is trying to spam us when there're no seats, it's likely that
         // someone is trying to paste from us.

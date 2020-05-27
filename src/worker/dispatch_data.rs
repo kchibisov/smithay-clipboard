@@ -5,6 +5,7 @@ use sctk::reexports::client::protocol::wl_seat::WlSeat;
 pub struct ClipboardDispatchData {
     observed_seats: Vec<(WlSeat, u32)>,
     last_pos: usize,
+    should_sync: bool
 }
 
 impl ClipboardDispatchData {
@@ -43,5 +44,15 @@ impl ClipboardDispatchData {
     /// Return the last observed seat and the serial.
     pub fn last_seat(&self) -> Option<&(WlSeat, u32)> {
         self.observed_seats.get(self.last_pos)
+    }
+
+    /// Whether sync_roundtrip should be performed.
+    pub fn should_sync(&self) -> bool {
+        self.should_sync
+    }
+
+    /// Set whether sync should be performed.
+    pub fn set_sync(&mut self, should_sync: bool) {
+        self.should_sync = should_sync;
     }
 }
